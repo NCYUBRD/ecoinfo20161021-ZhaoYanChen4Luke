@@ -1,0 +1,186 @@
+---
+title: "hw1"
+author: "ZhaoYan"
+date: "2016年11月14日"
+output: html_document
+---
+
+老師的作法
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 處理奮起湖測站資料
+
+1. 計算測站 C0M530 (奮起湖站) 從 2006 至 2015 
+   十年的
+   (1) 每日平均氣溫、
+   (2) 每月最低溫的平均、
+   (3) 每月最高溫的平均、
+   (4) 每月平均氣溫、
+   (5) 平均每月累積降雨 
+2. 計算最暖月的每日最高溫平均
+3. 計算最冷月的每日最低溫平均
+
+
+```{r}
+# 載入必要的 libraries
+library(data.table)
+```
+
+### 1. 先將奮起湖測站的資料輸入進 R
+ 
+特殊值:
+
+  * -9991:儀器故障待修
+  * -9996:資料累計於後
+  * -9997:因不明原因或故障而無資料
+  * -9998:雨跡(Trace)
+  * -9999:未觀測而無資料
+
+欄位名稱：
+
+  * stno: station number 站代碼
+  * yyyymmddhh: 時間戳記 年月日小時
+  * PS01: 氣壓
+  * TX01: 溫度
+  * RH01: 相對濕度
+  * WD01: 風向
+  * WD02: 風速
+  * PP01: 降水
+  * SS01: 日照時數
+
+```{r}
+C0M530 <- fread('C0M530.txt', header = FALSE, 
+      na.strings = c('-9991', '-9996', 
+                     '-9997', '-9998', '-9999'))
+# 設定欄位名稱
+# 先將欄位名稱儲存成一個文字向量並命名成 colnamesC0M530
+colnamesC0M530 <-  c('stno', 'yyyymmddhh', 
+                     'PS01', 'TX01', 'RH01',
+                     'WD01', 'WD02', 'PP01', 
+                     'SS01')
+# 使用 setnames() 來設定 C0M530 的欄位名稱
+setnames(C0M530, colnamesC0M530)
+```
+
+輸入資料後，先看一下資料的樣子
+
+```{r}
+# 看一下資料的維度
+dim(C0M530)
+```
+
+再看一下前幾列資料
+```{r}
+head(C0M530)
+```
+
+接下來我們就要想怎麼使用聚合(aggregate)來計算某個週期的平均氣象觀測資料。所以我們要把想計算的觀測資料，依據時間來做計算。
+第一個碰到的問題就是如何把 yyyymmddhh 
+這個欄位轉換成符合「時間格式規範」(一般來說是 POSIX date time)的欄位，可以使用```{r} strptime()``` 來處理
+
+```{r}
+C0M530[, timestamp := as.POSIXct(strptime(yyyymmddhh-1, '%Y%m%d%H'))]
+```
+
+```{r}
+# 新增一個欄位為年
+C0M530[, year := data.table::year(timestamp)]
+```
+
+
+```{r}
+# 新增一個欄位為月
+C0M530[, month := data.table::month(timestamp)]
+```
+
+```{r}
+# 計算每個月的平均溫度
+aggrMonth <- aggregate(TX01 ~ month, data = C0M530, FUN = mean)
+```
+自己作的樣子
+setwd('C:\\R')
+
+
+library(data.table)
+
+d200601 <- fread('raw/200601_auto_hr.txt', skip = 75)
+
+orig_names <- c('stno','yyyymmddhh','PS01','TX01','RH01',
+                'WD01','WD02','PP01','SS01')
+
+setnames(d200601, 1:9, orig_names)
+
+c <- c(-9997, -9999, -9996, -9991, -9998, -9995)
+for (i in c) {
+  d200601$PS01 <- ifelse(
+  d200601$PS01 == i, NA, d200601$PS01)
+}
+#將變數i歸零
+rm(i)
+
+for (i in c) {
+  d200601$TX01  <- ifelse(
+  d200601$TX01 == i, NA, d200601$TX01)
+}
+
+rm(i)
+
+for (i in c) {
+   d200601$RH01 <- ifelse(
+     d200601$RH01 == i, NA, d200601$RH01)
+ }
+
+rm(i)
+
+for (i in c) {
+   d200601$WD01 <- ifelse(
+    d200601$WD01 == i, NA, d200601$WD01)
+ }
+
+rm(i)
+
+for (i in c) {
+   d200601$WD02 <- ifelse(
+     d200601$WD02 == i, NA, d200601$WD02)
+}
+
+rm(i)
+
+for (i in c) {
+   d200601$PP01 <- ifelse(
+     d200601$PP01 == i, NA, d200601$PP01)
+ }
+
+rm(i)
+
+for (i in c) {
+   d200601$SS01 <- ifelse(
+    d200601$SS01 == i, NA, d200601$SS01)
+ }
+
+rm(i)
+
+head(d200601)
+
+wentdata <- c(d200601, C0M530 %in% c("C0M530") )
+
+# 設定欄位名稱
+# 先將欄位名稱儲存成一個文字向量並命名成 colnamesC0M530
+colnamesC0M530 <-  c('stno', 'yyyymmddhh', 
+                     'PS01', 'TX01', 'RH01',
+                     'WD01', 'WD02', 'PP01', 
+                     'SS01')
+# 使用 setnames() 來設定 C0M530 的欄位名稱
+setnames <- c(C0M530, colnamesC0M530)
+
+head(C0M530)
+
+strptime(wentdata_cwd$yyyymmdd,'%Y%m%d%H')
+
+d200601 <- data.table(d200601)
+
+d200601[, timestamp:=as.POSIXct(strptime(d200601$yyyymmdd-1,'%Y%m%d%H'))]
+
+
